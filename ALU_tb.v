@@ -4,7 +4,7 @@ reg [31:0] A, B;
 reg [5:0] ALUFun;
 reg Sign;
 wire [31:0] Z;
-ALU test(A, B, ALUFun, Sign, Z, S, V);
+ALU test(A, B, ALUFun, Sign, Z, V);
 
 initial begin
 /*
