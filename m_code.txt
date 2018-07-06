@@ -1,0 +1,4 @@
+8'd0: Instruction <= 32'h012a4020
+8'd1: Instruction <= 32'h012a4020
+8'd2: Instruction <= 32'h08000003
+8'd3: Instruction <= 32'h012a4020

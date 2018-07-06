@@ -1,0 +1,14 @@
+	sub $t0, $t1, $t2
+new:
+	add $t0, $t1, $t2
+	j old
+old:
+	xor $t0, $t1, $t2
+	sw $t1, -100($t2)
+	sll $t1, $t2, 20
+	addi $s1, $t2, -100
+	bltz $t1, new
+	jr $ra
+	jalr $ra, $a0
+	slt $t1, $t2, $t3
+	nop
