@@ -63,46 +63,58 @@ def inst_str2bin(inst, inst_addr):
         #add,addu,sub,subu,and,or,xor,nor,slt
         m = re.match(r'(.*)[ ]+\$(.*)[ ]*,[ ]*\$(.*),[ ]*\$(.*)', inst)
         if m:
+            #print(1)
             return opcode[m.group(1)] + register_str2bin(m.group(3)) + register_str2bin(m.group(4)) + register_str2bin(m.group(2)) + '00000' + funccode[m.group(1)]
         #lw,sw
         m = re.match(r'(.*)[ ]+\$(.*)[ ]*,[ ]*(.*)\(\$(.*)\)', inst)
         if m:
+            #print(2)
             return opcode[m.group(1)] + register_str2bin(m.group(4)) + register_str2bin(m.group(2)) + imm_str2bin(m.group(3))
         #sll,srl,sra
         m = re.match(r'(sll|srl|sra)[ ]*\$(.+)[ ]*,[ ]*\$(.+)[ ]*,[ ]*(.+)', inst)
         if m:
+            #print(3)
             return opcode[m.group(1)] + '00000' + register_str2bin(m.group(3)) + register_str2bin(m.group(2)) + shamt_str2bin(m.group(4)) + funccode[m.group(1)]
         #beq,bne
         m = re.match(r'(beq|bne)[ ]+\$(.*)[ ]*,[ ]*\$(.*)[ ]*,[ ]*([^\$]+)', inst)
         if m:
+            #print(4)
             return opcode[m.group(1)] + register_str2bin(m.group(2)) + register_str2bin(m.group(3)) + label_str2bin(label_set, inst, inst_addr, m.group(4))
         #jal,j
         m = re.match(r'(jal|j)[ ]+(.+)', inst) 
         if m:
+            #print(5)
             return opcode[m.group(1)] + label_str2bin(label_set, inst, inst_addr, m.group(2))
         #addi,addiu,andi,slti,sltiu
         m = re.match(r'(.*)[ ]+\$(.*)[ ]*,[ ]*\$(.*)[ ]*,[ ]*([^\$]+)', inst)
         if m:
+            #print(6)
             return opcode[m.group(1)] + register_str2bin(m.group(3)) + register_str2bin(m.group(2)) + imm_str2bin((m.group(4)))
         #lui
         m = re.match(r'lui[ ]+\$(.*)[ ]*,[ ]*([^\$]+)', inst)
         if m: 
+            #print(7)
             return opcode['lui'] + '00000' + register_str2bin(m.group(1)) + imm_str2bin(m.group(2))
         #jalr
         m = re.match(r'jalr[ ]+\$(.+)[ ]*,[ ]*\$(.+)', inst)
         if m: 
+            #print(8)
             return opcode['jalr'] + register_str2bin(m.group(2)) + '00000' + register_str2bin(m.group(1)) + '00000' + funccode['jalr']
         #blez,bgtz,bltz
         m = re.match(r'(.*)[ ]+\$(.*)[ ]*,[ ]*([^\$]+)', inst)
         if m: 
+            #print(9)
             return opcode[m.group(1)] + register_str2bin(m.group(2)) + '00000' + label_str2bin(label_set, inst, inst_addr, m.group(3))
         #jr
         m = re.match(r'(jr)[ ]+\$(.+)', inst)
-        if m: 
+        if m:
+            #print(10) 
             return opcode['jr'] + register_str2bin(m.group(2)) + '0' * 15 + funccode['jr']
         m = re.match(r'(nop)', inst)
         if m:
+            #print(11)
             return opcode['nop'] + '00000' + register_str2bin('zero') + register_str2bin('zero') + '00000' + '00000'
+        print(inst, '\nInvalid systax!')
     except ValueError as e:
         print("Error in line:" + e.args[0].split()[0] + "is not a register name!")
         return None
@@ -128,14 +140,27 @@ if __name__ == '__main__':
     with open('./inst.s', 'r') as f:
         for line in f:
             if (line.strip() != '' and line.strip()[0] != '#'):
-                if (line.strip()[-1] == ':'):
-                    label_set.append((len(instruction_set), line.strip()[:-1]))
-                else:
-                    instruction_set.append(line.strip())
-    #for x in instruction_set: print(x)
-    #for x in label_set: print(x)
+                m = re.match(r'[\s]*(.*):[\s]*[\n]', line)
+                if m:
+                    label_set.append((len(instruction_set), m.group(1)))
+                    continue
+               # if (line.strip()[-1] == ':'):
+               #     label_set.append((len(instruction_set), line.strip()[:-1]))
+                m = re.match(r'[\s]*(.*):[\s]*([^#]+)[ ]*[#]*[.]*', line.strip())
+                if m:
+                    label_set.append((len(instruction_set), m.group(1)))
+                    instruction_set.append(m.group(2))
+                    continue
+                m = re.match(r'[\s]*([^#]+)[ ]*[#]*', line.strip())
+                if m:
+                    instruction_set.append(m.group(1))
+                    continue
+                print('error! Invalid systax.')
+   # for x in instruction_set: print(x)
+   # for x in label_set: print(x)
     for i in range(len(instruction_set)):
-        print(hex(int(inst_str2bin(instruction_set[i], i),2))[2:].zfill(8))
+        #print(instruction_set[i])
+       # print(hex(int(inst_str2bin(instruction_set[i], i),2))[2:].zfill(8))
         instruction_bin.append(hex(int(inst_str2bin(instruction_set[i], i),2))[2:].zfill(8))
     with open('rom.v', 'w+') as f:
         for line in pre_rom:
