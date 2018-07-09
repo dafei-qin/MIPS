@@ -14,18 +14,18 @@ module CPU(sysclk, reset, switch, led, digi_out0, digi_out1, digi_out2, digi_out
 	output [6:0] digi_out2; //2: CG - CA
 	output [6:0] digi_out3; //3: CG - CA
 
-	//reg 
+	//reg
 	reg [4:0] AddrC;
-	reg [31:0] PC; 
+	reg [31:0] PC;
 	reg [31:0] PC_NEXT;
 
 	//wire
-	wire Regwr, ALUSrc1, ALUSrc2, MemWr, MenRd, EXTOp, LUOp, IRQ, IRQ_Control, tx_en, Sign, V;
-	wire [1:0] RegDst, MemToReg, rec;   // !!! rec
+	wire Regwr, ALUSrc1, ALUSrc2, MemWr, MenRd, EXTOp, LUOp, IRQ, IRQ_Control, Sign, clk;
+	wire [1:0] RegDst, MemToReg;
 	wire [2:0] PCSrc;
 	wire [4:0] Shamt, Rd, Rt, Rs;
 	wire [5:0] ALUFun;
-	wire [7:0] tx_data, rx_data1, rx_data2;
+	//wire [7:0] tx_data, rx_data1, rx_data2;
 	wire [11:0] digi;
 	wire [15:0] Imm16;
 	wire [31:0] PC_Plus_4, ConBA, Instruction, JT, Data_Bus_A, Data_Bus_B, Data_Bus_C, Branch_Target, ALUIn1, ALUIn2, ALUOut, LUOut, EXTOut, ReadData0, ReadData1, ReadData;
@@ -42,8 +42,8 @@ module CPU(sysclk, reset, switch, led, digi_out0, digi_out1, digi_out2, digi_out
 	//PC Caculate
 	always @(posedge clk or negedge reset) begin
 		if(~reset)
-			PC <= 32'h80000000; //If reset: Kernel State
-		else 
+			PC <= 32'h80000000; //If reset:  Kernel State
+		else
 			PC <= PC_NEXT;
 	end
 
@@ -58,7 +58,7 @@ module CPU(sysclk, reset, switch, led, digi_out0, digi_out1, digi_out2, digi_out
 	//ConBA: Conditional Branch Addr
 	assign ConBA[31] = PC_Plus_4[31];
 	assign ConBA[30:0] = PC_Plus_4[30:0] + {EXTOut[28:0], 2'b00};
-	
+
 	//PC_NEXT
 	always @(*) begin
 		case(PCSrc)
@@ -93,8 +93,8 @@ module CPU(sysclk, reset, switch, led, digi_out0, digi_out1, digi_out2, digi_out
 	assign Rs = Instruction[25:21];
 
 	//Control signals generation
-	Control Control1(.OpCode(Instruction[31:26]), .Funct(Instruction[5:0]), .IRQ(IRQ_Control), .PCSrc(PCSrc), .RegDst(RegDst), .Regwr(Regwr), .ALUSrc1(ALUSrc1), .ALUSrc2(ALUSrc2),
-		.ALUFun(ALUFun), .MemWr(MemWr), .MenRd(MenRd), .MemToReg(MemToReg), .EXTOp(EXTOp), .LUOp(LUOp), .Sign(Sign));
+	Control Control1(.OpCode(Instruction[31:26]), .Funct(Instruction[5:0]), .IRQ(IRQ_Control), .PCSrc(PCSrc), .RegDst(RegDst), .RegWr(Regwr), .ALUSrc1(ALUSrc1), .ALUSrc2(ALUSrc2),
+		.ALUFun(ALUFun), .MemWr(MemWr), .MemRd(MenRd), .MemToReg(MemToReg), .EXTOp(EXTOp), .LUOp(LUOp), .Sign(Sign));
 
 	//AddrC
 	always @(*) begin
@@ -116,7 +116,7 @@ module CPU(sysclk, reset, switch, led, digi_out0, digi_out1, digi_out2, digi_out
 	assign ALUIn2 = ALUSrc2 ? LUOut : Data_Bus_B;
 
 	//ALUOut
-	ALU ALU1(.A(ALUIn1), .B(ALUIn2), .ALUFun(ALUFun), .Sign(Sign), .Z(ALUOut), .V(V));
+	ALU ALU1(.A(ALUIn1), .B(ALUIn2), .ALUFun(ALUFun), .Sign(Sign), .Z(ALUOut));
 
 	//LUOut
 	assign LUOut = LUOp ? {Imm16, 16'd0} : EXTOut;
@@ -128,7 +128,7 @@ module CPU(sysclk, reset, switch, led, digi_out0, digi_out1, digi_out2, digi_out
 	DataMem DataMem1(.reset(reset), .clk(clk), .rd(MenRd), .wr(MemWr), .addr(ALUOut), .wdata(Data_Bus_B), .rdata(ReadData0));
 
 	//ReadData1 & led & digi & IRQ: Read peripheral memory
-	Peripheral Peripheral1(.reset(reset), .clk(clk), .rd(MemRd), .wr(MemWr), .addr(ALUOut), .wdata(Data_Bus_B) , .rdata(ReadData1), .led(led), .switch(switch), .digi(digi), .irqout(IRQ),.rec(rec),.rx_data1(rx_data1),.rx_data2(rx_data2),.tx_data(tx_data),.tx_en(tx_en));
+	Peripheral Peripheral1(.reset(reset), .clk(sysclk), .rd(MenRd), .wr(MemWr), .addr(ALUOut), .wdata(Data_Bus_B) , .rdata(ReadData1), .led(led), .switch(switch), .digi(digi), .irqout(IRQ), .uartin(uart_rx), .uartout(uart_tx));
 
 	//IRQ_Control: When check fit(PC[31]) = 1, interruption is disabled
 	assign IRQ_Control = IRQ & (~PC[31]);
@@ -136,9 +136,11 @@ module CPU(sysclk, reset, switch, led, digi_out0, digi_out1, digi_out2, digi_out
 	//digitube_scan
 	digitube_scan digitube_scan1(.digi_in(digi), .digi_out1(digi_out0), .digi_out2(digi_out1), .digi_out3(digi_out2), .digi_out4(digi_out3));
 
+	/*
 	//UART
 	UARTRec R1(.uart_rx(uart_rx), .sysclk(sysclk), .reset(reset), .rx_data1(rx_data1), .rx_data2(rx_data2), .rec(rec));
 	UARTSnd S1(.sysclk(sysclk), .reset(reset), .tx_data(tx_data), .tx_en(tx_en), .uart_tx(uart_tx));
+	*/
 
 	//ReadData
 	assign ReadData = ALUOut[30] ? ReadData1 : ReadData0;

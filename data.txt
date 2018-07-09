@@ -1,4 +1,13 @@
-led 00001000
-uart_r $t1
-uart_w $t1
-ledr $a0
+uart_r $a1
+
+uart_r $a2
+digi1 $a1
+digi2 $a2
+
+add $t3, $a2, $a1
+
+uart_w $t3
+
+STACK:
+	
+	j STACK

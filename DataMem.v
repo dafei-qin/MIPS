@@ -9,11 +9,11 @@ input [31:0] wdata;
 
 parameter RAM_SIZE = 256;
 reg [31:0] RAMDATA [RAM_SIZE-1:0];
+initial	$readmemb ("datamem.txt", RAMDATA, 255, 0);
+assign rdata=(rd && (addr[31:2] < RAM_SIZE))?RAMDATA[addr[31:2]]:32'b0;
 
-assign rdata=(rd && (addr < RAM_SIZE))?RAMDATA[addr[31:2]]:32'b0;
-
-always@(posedge clk) begin
-	if(wr && (addr < RAM_SIZE)) RAMDATA[addr[31:2]]<=wdata;
+always@(posedge clk or negedge reset) begin
+	if(wr && (addr[31:2] < RAM_SIZE)) RAMDATA[addr[31:2]]<=wdata;
 end
-
+	
 endmodule

@@ -5,12 +5,11 @@ Time   : 18/07
 
 `timescale 1ns/1ns
 
-module ALU(A, B, ALUFun, Sign, Z, V);
+module ALU(A, B, ALUFun, Sign, Z);
 	input  [31:0] A, B;
 	input  [5:0] ALUFun;
 	input  Sign;
 	output reg [31:0] Z;
-	output V; //Overflow signal
 
 	//Part1: ADD/SUB Module
 
@@ -27,11 +26,10 @@ module ALU(A, B, ALUFun, Sign, Z, V);
 
 	//add
 	wire [31:0] Sum;
-	wire Zero, Overflow, Negative, V;
+	wire Zero, Overflow, Negative;
 	assign Sum = A_mod + C;
 	assign Zero = (Sum == 32'b0);
 	assign Overflow = (A_mod[31] & C[31] & (~Sum[31])) | ((~A_mod[31]) & (~C[31]) & Sum[31]);
-	assign V = Overflow;
 	assign Negative = Sum[31];
 
 	//Part2: Compare
